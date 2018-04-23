@@ -104,19 +104,15 @@ ScreenUI::~ScreenUI()
 	}
 	top_wins_.clear();
 }
-
+void ScreenUI::SetUserINI(const CString& ini)
+{
+	if(tools_){
+		tools_->SetUserINI(ini);
+	}
+}
 void ScreenUI::Init()
 {
-	//copy屏幕内容
-	HDC hdcScreen = ::CreateDC(_T("DISPLAY"), NULL, NULL, NULL);
-	int dW = 0,dH = 0;
-	GetShowSize(hdcScreen,dW,dH);
-	cur_screen_ = new Gdiplus::Bitmap(dW,dH);
-	Gdiplus::Graphics gSave(cur_screen_);
-	HDC hSave = gSave.GetHDC();
-	::BitBlt(hSave,0,0,dW,dH,hdcScreen,0,0,SRCCOPY|CAPTUREBLT);
-	gSave.ReleaseHDC(hSave);
-	::DeleteDC(hdcScreen);
+	cur_screen_ = BitBltDesktop(GetManager()->GetPaintWindow());
 	//获得所有顶层窗口并剔除自己
 	std::vector<HWND>	top_wins;
 	GetAllTopWindows(top_wins);
@@ -137,8 +133,7 @@ void ScreenUI::Init()
 	showrc_ = FindSubControl(_T("showrc"));
 	tools_  = static_cast<ToolsbarUI*>(FindSubControl(_T("tools")));
 	GetManager()->SetFocus(this);
-	rcTrue_=DuiLib::CRect(0,0,dW,dH);
-
+	rcTrue_=DuiLib::CRect(0,0,cur_screen_->GetWidth(),cur_screen_->GetHeight());
 	DuiLib::DUI__Trace(_T("Screen init"));
 	__super::DoInit();
 }
@@ -363,6 +358,21 @@ void ScreenUI::Event(DuiLib::TEventUI& event)
 		case VK_DOWN:
 			Move(0,1);
 			return ;
+		case VK_ESCAPE:
+			DuiLib::CControlUI *ui = GetManager()->GetFocus();
+			if( ui )
+			{
+				CAtlString strClass = ui->GetClass();
+				strClass.MakeUpper();
+				if( 0==strClass.CompareNoCase(DUI_CTR_RICHEDIT)||-1!=strClass.Find(_T("EDIT"))||
+					0==strClass.CompareNoCase(DUI_CTR_EDIT) )
+				{
+					GetManager()->SetFocus(GetManager()->GetRoot());
+					return ;
+				}
+			}
+			::PostMessage(GetManager()->GetPaintWindow(),WM_CLOSE,0,0);
+			return ;
 		}
 	}
 	if( event.Type==DuiLib::UIEVENT_SETCURSOR )
@@ -461,9 +471,12 @@ void ScreenUI::Event(DuiLib::TEventUI& event)
 		lclicktm_ = ::GetMessageTime();
 		if( IS_HAVE(draw_states_,capture::DRAW_SEL) && PtInSel(event.ptMouse) )
 		{
-			draw_layer = layers_.push(draw_cap_,RcWidth(GetPos()),RcHeight(GetPos()));
-			draw_layer->limitRc(cur_sel_);
-			draw_layer->font(tools_->sel_ft_);
+			//为了方便测试
+			//if(draw_layer==NULL){
+				draw_layer = layers_.push(draw_cap_,cur_screen_,cur_sel_);
+				draw_layer->limitRc(cur_sel_);
+				draw_layer->font(tools_->sel_ft_);
+			//}
 			draw_layer->draw(GetManager()->GetPaintWindow(),&event,&tools_->sel_pen_);
 		}
 	}
@@ -546,6 +559,7 @@ void ScreenUI::Event(DuiLib::TEventUI& event)
 	}
 	if( event.Type==capture::InitTools && tools_ )
 	{
+		//tools_->SetCurShape(draw_cap_);
 		tools_->Event(event);
 	}
 	if( event.Type==capture::SaveAsFile )
@@ -566,7 +580,7 @@ void ScreenUI::Event(DuiLib::TEventUI& event)
 		if( !savepath_.IsEmpty() )
 		{
 			CopyToClipboard(savepath_);
-			//CopyBitmapToClipboard();
+			CopyBitmapToClipboard();
 			::PostMessage(GetManager()->GetPaintWindow(),WM_CLOSE,0,0);
 		}
 		return ;
@@ -613,7 +627,7 @@ CAtlString ScreenUI::DoSave(bool bShowDlg)
 void ScreenUI::CopyBitmapToClipboard()
 {
 	HBITMAP	bit=NULL;
-	Gdiplus::Bitmap *build = layers_.build(cur_screen_,cur_sel_);
+	Gdiplus::Bitmap *build = layers_.buildClip(cur_screen_,cur_sel_);
 	if( Gdiplus::Ok==build->GetHBITMAP(NULL,&bit) )
 	{
 		BOOL bOpen = ::OpenClipboard( GetManager()->GetPaintWindow() );
@@ -623,6 +637,7 @@ void ScreenUI::CopyBitmapToClipboard()
 		::SetClipboardData(CF_BITMAP,bit);
 		::SetClipboardData(CF_DIB,dib);
 		::CloseClipboard();
+		::DeleteObject((HGDIOBJ )bit);
 	}
 }
 void ScreenUI::CopyToClipboard(const CAtlString& file)

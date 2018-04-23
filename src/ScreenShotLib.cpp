@@ -3,7 +3,7 @@
 #include "CaptureImage.h"
 
 static bool s_bScreenShotOpened = false;
-int OpenScreenShot()
+int __stdcall OpenScreenShot(LPCTSTR userINI)
 {
 	if (s_bScreenShotOpened)
 	{
@@ -14,7 +14,7 @@ int OpenScreenShot()
 	//pVSDlg.Create(NULL/*m_hWnd*/, NULL,UI_WNDSTYLE_FRAME | WS_POPUP,0,0,0,600,450);
 	//UINT unRet = pVSDlg.ShowModal();
 	CaptureImage img;
-	img.Work();
+	img.Work(userINI);
 	
 	s_bScreenShotOpened = false;
 	return 0;

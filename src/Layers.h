@@ -11,6 +11,7 @@ public:
 	{
 	public:
 		Layer(long nW,long nH);
+		Layer(long nW,long nH,Layers *layers);
 		virtual ~Layer();
 		virtual void draw(HWND win,DuiLib::TEventUI *ev,Gdiplus::Pen *pen,Gdiplus::SolidBrush *br=NULL,Gdiplus::Font *ft=NULL)
 		{			}
@@ -21,6 +22,7 @@ public:
 		Gdiplus::Graphics*		graphic();
 		Gdiplus::GraphicsPath*	path();
 		void clear();
+		void init(long nW,long nH);
 	public:
 		POINT pt_;								//x,y
 		capture::FontInfo		ftInfo_;		//
@@ -31,10 +33,11 @@ public:
 		Gdiplus::GraphicsPath	*path_;			//
 		Gdiplus::Graphics		*graphic_;		//
 		RECT					rclimit_;
+		Layers					*layers_;
 		friend Layers;
 	};
 	//新建一层
-	Layer*	push(capture::DRAW_CAP cap,long nW,long nH);
+	Layer*	push(capture::DRAW_CAP cap,Gdiplus::Bitmap *draw,RECT rcSel);
 	//当前图层
 	Layer*	current();
 	//绘制所有图层
@@ -47,8 +50,11 @@ public:
 	void	move(long nX,long nY);
 	long	countLayerVisible();
 	Layer*	getLayerAtLast();
-	Gdiplus::Bitmap* build(Gdiplus::Bitmap *draw,RECT rc);
 	bool	save(Gdiplus::Bitmap *draw,RECT rc,const CAtlString &str);
+	Gdiplus::Bitmap* getBuild();
+	Gdiplus::Bitmap* buildClip(Gdiplus::Bitmap *draw,RECT rc);
+protected:
+	Gdiplus::Bitmap* buildFull(Gdiplus::Bitmap *draw);
 protected:
 	typedef std::vector<Layer*>	Ones;
 private:

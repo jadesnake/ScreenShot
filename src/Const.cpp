@@ -11,6 +11,20 @@ RECT Plus2Rc(Gdiplus::Rect &rc)
 	ret.bottom= rc.Y+rc.Height;
 	return ret;
 }
+Gdiplus::Bitmap* BitBltDesktop(HWND win)
+{
+	Gdiplus::Bitmap *bitmap = NULL;
+	int dW = 0,dH = 0;
+	HDC hdcScreen = ::CreateDC(_T("DISPLAY"), NULL, NULL, NULL);
+	GetShowSize(hdcScreen,dW,dH);
+	bitmap = new Gdiplus::Bitmap(dW,dH);
+	Gdiplus::Graphics gSave(bitmap);
+	HDC hSave = gSave.GetHDC();
+	::BitBlt(hSave,0,0,dW,dH,hdcScreen,0,0,SRCCOPY|CAPTUREBLT);
+	gSave.ReleaseHDC(hSave);
+	::DeleteDC(hdcScreen);
+	return bitmap;
+}
 void GetShowSize(HDC dc,int &nW,int &nH){
 	typedef IDirect3D9* (WINAPI *CreateDx9)(UINT);
 	int nX=0,nY=0;

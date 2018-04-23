@@ -14,6 +14,13 @@ public:
 		cur_pt_.y=0;
 		::SetRectEmpty(&paint_range_);
 	}
+	DrawBase(long nW,long nH,Layers *layers)
+		:theX(nW,nH,layers)
+	{
+		cur_pt_.x=0;
+		cur_pt_.y=0;
+		::SetRectEmpty(&paint_range_);
+	}
 	~DrawBase()
 	{
 
@@ -122,13 +129,33 @@ protected:
 	long pen_limit_w_;
 };
 
-class DrawGauss : public DrawBase<Layers::Layer>
+class DrawMosaic : public DrawBase<Layers::Layer>
 {
 public:
-	DrawGauss(long nW,long nH);
-	virtual ~DrawGauss();
+	DrawMosaic(long nW,long nH,Layers *layers);
+	virtual ~DrawMosaic();
 	virtual void draw(HWND win,DuiLib::TEventUI *ev,Gdiplus::Pen *pen,Gdiplus::SolidBrush *br,Gdiplus::Font *ft);
+	void drawRect();
+	typedef union{
+		struct{
+			byte blue;
+			byte green;
+			byte red;
+			byte alpha;			
+		}c;
+		long value;
+	}ARGB;
+	
+	typedef struct{
+		ARGB color;		//色值
+		long freq;		//频率
+	}APPEAR;			//出现率
+	typedef std::map<long,APPEAR> RATE;	//记录颜色出现频率
+	void handle(BitmapData *src,BitmapData *dst,int mosaic_w,int mosaic_h,bool radeom);
+	void swip(BitmapData *src,BitmapData *dst,int mosaic_w,int mosaic_h);
 protected:
+	Gdiplus::Bitmap		*mapBit_;		//呈现映图
+	int					nRadom_;
 };
 
 class DrawTexture : public DrawBase<Layers::Layer>

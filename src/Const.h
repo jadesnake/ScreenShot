@@ -78,3 +78,4 @@ namespace capture
 
 RECT Plus2Rc(Gdiplus::Rect &rc);
 void GetShowSize(HDC dc,int &nW,int &nH);
+Gdiplus::Bitmap* BitBltDesktop(HWND win);

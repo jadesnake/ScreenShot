@@ -11,6 +11,6 @@ CScreenShotManage::~CScreenShotManage(void)
 
 void CScreenShotManage::OpenScreenShot()
 {
-	CaptureImage img;
-	img.Work();
+	//CaptureImage img;
+	//img.Work();
 }

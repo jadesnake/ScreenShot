@@ -14,7 +14,10 @@ CaptureImage::~CaptureImage(void)
 }
 void CaptureImage::InitWindow()
 {
-	m_PaintManager.GetRoot()->Init();	//由于duilib不通知root节点初始化事件因此手动通知
+	DuiLib::CControlUI *root = m_PaintManager.GetRoot();
+	root->Init();	//由于duilib不通知root节点初始化事件因此手动通知
+	ScreenUI *sceen = reinterpret_cast<ScreenUI*>(root);
+	sceen->SetUserINI(m_userINI);
 	LoadOperatbar();
 }
 void CaptureImage::OnFinalMessage(HWND hWnd)
@@ -33,8 +36,10 @@ LPCTSTR CaptureImage::GetWindowClassName(void) const
 {
 	return _T("Servyou_captureimage");
 }
-void CaptureImage::Work()
+void CaptureImage::Work(LPCTSTR userINI)
 {
+	m_userINI = userINI;
+
 	HDC hdcScreen = ::CreateDC(_T("DISPLAY"), NULL, NULL, NULL);
 	int nW=0,nH=0;
 	GetShowSize(hdcScreen,nW,nH);
@@ -74,6 +79,10 @@ LRESULT CaptureImage::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if( uMsg==WM_LBUTTONUP )
 	{
 		DuiLib::DUI__Trace(_T("end"));
+	}
+	if( uMsg==WM_RBUTTONUP )
+	{
+		this->Close();
 	}
 	switch (uMsg)
 	{

@@ -33,7 +33,16 @@ int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
 } 
 
 Layers::Layer::Layer(long nW,long nH)
-	:bVisible_(true)
+	:bVisible_(true),layers_(NULL)
+{
+	init(nW,nH);
+}
+Layers::Layer::Layer(long nW,long nH,Layers *layers)
+	:bVisible_(true),layers_(layers)
+{
+	init(nW,nH);
+}
+void Layers::Layer::init(long nW,long nH)
 {
 	rclimit_.left = 0;
 	rclimit_.top  = 0;
@@ -127,31 +136,33 @@ Layers::~Layers(void)
 		cur_build_=NULL;
 	}
 }
-Layers::Layer*	Layers::push(capture::DRAW_CAP cap,long nW,long nH)
+Layers::Layer*	Layers::push(capture::DRAW_CAP cap,Gdiplus::Bitmap *draw,RECT rcSel)
 {
+	//建立和屏幕相等的位图，因为不需要做坐标映射那就浪费点内存
 	Layer *cur=NULL;
+	buildFull(draw);
 	switch(cap)
 	{
 	case capture::Rectangle:
-		cur = new DrawRect(nW,nH);
+		cur = new DrawRect(rcSel.right,rcSel.bottom);
 		break;
 	case capture::Ellipse:
-		cur = new DrawEllipse(nW,nH);
+		cur = new DrawEllipse(rcSel.right,rcSel.bottom);
 		break;
 	case capture::Arrow:
-		cur = new DrawArrow(nW,nH);
+		cur = new DrawArrow(rcSel.right,rcSel.bottom);
 		break;
 	case capture::Brush:
-		cur = new DrawPoints(nW,nH);
+		cur = new DrawPoints(rcSel.right,rcSel.bottom);
 		break;
 	case capture::Gauss:
-		cur = new DrawGauss(nW,nH);
+		cur = new DrawMosaic(rcSel.right,rcSel.bottom,this);
 		break;
 	case capture::Text:
-		cur = new DrawTexture(nW,nH);
+		cur = new DrawTexture(rcSel.right,rcSel.bottom);
 		break;
 	default:
-		cur = new Layer(nW,nH);
+		cur = new Layer(rcSel.right,rcSel.bottom);
 	}
 	cur_ = cur;
 	all_.push_back(cur_);
@@ -242,7 +253,26 @@ bool	Layers::redo()
 	cur_ = l;
 	return true;
 }
-Gdiplus::Bitmap* Layers::build(Gdiplus::Bitmap *draw,RECT rc)
+Gdiplus::Bitmap* Layers::getBuild()
+{
+	return cur_build_;
+}
+Gdiplus::Bitmap* Layers::buildFull(Gdiplus::Bitmap *draw)
+{
+	if( cur_build_ )
+		delete cur_build_;
+	Gdiplus::Graphics gImg(draw);
+	RECT	  rcImg={0,0,draw->GetWidth(),draw->GetHeight()};
+	gImg.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+	paint(&gImg,rcImg);
+
+	cur_build_ = new Gdiplus::Bitmap(draw->GetWidth(),draw->GetHeight());
+	Gdiplus::Graphics g(cur_build_);
+	g.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+	g.DrawImage(draw,0,0);
+	return cur_build_;
+}
+Gdiplus::Bitmap* Layers::buildClip(Gdiplus::Bitmap *draw,RECT rc)
 {
 	if( cur_build_ )
 		delete cur_build_;
@@ -268,6 +298,6 @@ bool	Layers::save(Gdiplus::Bitmap *draw,RECT rc,const CAtlString &str)
 		GetEncoderClsid(L"image/bmp", &imgClsid);
 	else 
 		return false;
-	build(draw,rc);
+	buildClip(draw,rc);
 	return (Gdiplus::Ok==cur_build_->Save(str,&imgClsid,NULL)?true:false);
 }

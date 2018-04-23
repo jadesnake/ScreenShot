@@ -6,7 +6,7 @@ class CaptureImage : BuilderCall<DuiLib::WindowImplBase>
 public:
 	CaptureImage(void);
 	virtual ~CaptureImage(void);
-	void	Work();
+	void	Work(LPCTSTR userINI);
 protected:
 	//duilib
 	virtual void InitWindow();
@@ -17,4 +17,5 @@ protected:
 	virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 protected:
 	virtual DuiLib::CControlUI*	LoadOperatbar();
+	CString m_userINI;
 };
